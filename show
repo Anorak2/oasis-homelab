@@ -1,0 +1,221 @@
+IP(8)                                                         Linux                                                         IP(8)
+
+NNAAMMEE
+       ip - show / manipulate routing, network devices, interfaces and tunnels
+
+SSYYNNOOPPSSIISS
+       iipp [ _O_P_T_I_O_N_S ] _O_B_J_E_C_T { _C_O_M_M_A_N_D | hheellpp }
+
+       iipp [ --ffoorrccee ] --bbaattcchh _f_i_l_e_n_a_m_e
+
+       _O_B_J_E_C_T := { lliinnkk | aaddddrreessss | aaddddrrllaabbeell | rroouuttee | rruullee | nneeiigghh | nnttaabbllee | ttuunnnneell | ttuunnttaapp | mmaaddddrreessss | mmrroouuttee | mmrruullee |
+               mmoonniittoorr | xxffrrmm | nneettnnss | ll22ttpp | ttccpp__mmeettrriiccss | ttookkeenn | mmaaccsseecc | vvrrff | mmppttccpp | iiooaamm | ssttaattss }
+
+       _O_P_T_I_O_N_S := { --VV[_e_r_s_i_o_n] | --hh[_u_m_a_n_-_r_e_a_d_a_b_l_e] | --ss[_t_a_t_i_s_t_i_c_s] | --dd[_e_t_a_i_l_s] | --rr[_e_s_o_l_v_e] | --iieecc | --ff[_a_m_i_l_y] { iinneett | iinneett66 |
+               lliinnkk } | --44 | --66 | --BB | --00 | --ll[_o_o_p_s] { mmaaxxiimmuumm--aaddddrr--fflluusshh--aatttteemmppttss } | --oo[_n_e_l_i_n_e] | --rrcc[_v_b_u_f] [ssiizzee] | --tt[_i_m_e_s_‐
+               _t_a_m_p] | --ttss[_h_o_r_t] | --nn[_e_t_n_s] name | --NN[_u_m_e_r_i_c] | --aa[_l_l] | --cc[_o_l_o_r] | --bbrr[_i_e_f] | --jj[son] | --pp[retty] }
+
+OOPPTTIIOONNSS
+       --VV, --VVeerrssiioonn
+              Print the version of the iipp utility and exit.
+
+       --hh, --hhuummaann, --hhuummaann--rreeaaddaabbllee
+              output statistics with human readable values followed by suffix.
+
+       --bb, --bbaattcchh <FILENAME>
+              Read commands from provided file or standard input and invoke them.  First failure will cause termination of ip.
+
+       --ffoorrccee Don't terminate ip on errors in batch mode.  If there were any errors during execution of the commands, the appli‐
+              cation return code will be non zero.
+
+       --ss, --ssttaattss, --ssttaattiissttiiccss
+              Output more information. If the option appears twice or more, the amount of information increases.  As a rule, the
+              information is statistics or some time values.
+
+       --dd, --ddeettaaiillss
+              Output more detailed information.
+
+       --ll, --llooooppss <COUNT>
+              Specify maximum number of loops the 'ip address flush' logic will attempt before giving up. The default is 10.
+              Zero (0) means loop until all addresses are removed.
+
+       --ff, --ffaammiillyy <FAMILY>
+              Specifies the protocol family to use. The protocol family identifier can be one of iinneett, iinneett66, bbrriiddggee, mmppllss or
+              lliinnkk.  If this option is not present, the protocol family is guessed from other arguments. If the rest of the com‐
+              mand line does not give enough information to guess the family, iipp falls back to the default one, usually iinneett or
+              aannyy.  lliinnkk is a special family identifier meaning that no networking protocol is involved.
+
+       --44     shortcut for --ffaammiillyy iinneett.
+
+       --66     shortcut for --ffaammiillyy iinneett66.
+
+       --BB     shortcut for --ffaammiillyy bbrriiddggee.
+
+       --MM     shortcut for --ffaammiillyy mmppllss.
+
+       --00     shortcut for --ffaammiillyy lliinnkk.
+
+       --oo, --oonneelliinnee
+              output each record on a single line, replacing line feeds with the ''\\'' character. This is convenient when you want
+              to count records with wwcc(1) or to ggrreepp(1) the output.
+
+       --rr, --rreessoollvvee
+              use the system's name resolver to print DNS names instead of host addresses.
+
+       --nn, --nneettnnss <NETNS>
+              switches iipp to the specified network namespace _N_E_T_N_S.  Actually it just simplifies executing of:
+
+              iipp nneettnnss eexxeecc _N_E_T_N_S iipp [ _O_P_T_I_O_N_S ] _O_B_J_E_C_T { _C_O_M_M_A_N_D | hheellpp }
+
+              to
+
+              iipp -n[etns] _N_E_T_N_S [ _O_P_T_I_O_N_S ] _O_B_J_E_C_T { _C_O_M_M_A_N_D | hheellpp }
+
+       --NN, --NNuummeerriicc
+              Print the number of protocol, scope, dsfield, etc directly instead of converting it to human readable name.
+
+       --aa, --aallll
+              executes specified command over all objects, it depends if command supports this option.
+
+       --cc[ccoolloorr][=={aallwwaayyss|aauuttoo|nneevveerr}
+              Configure color output. If parameter is omitted or aallwwaayyss, color output is enabled regardless of stdout state. If
+              parameter is aauuttoo, stdout is checked to be a terminal before enabling color output. If parameter is nneevveerr, color
+              output is disabled. If specified multiple times, the last one takes precedence. This flag is ignored if --jjssoonn is
+              also given.
+
+              Used color palette can be influenced by CCOOLLOORRFFGGBBGG environment variable (see EENNVVIIRROONNMMEENNTT).
+
+       --tt, --ttiimmeessttaammpp
+              display current time when using monitor option.
+
+       --ttss, --ttsshhoorrtt
+              Like --ttiimmeessttaammpp, but use shorter format.
+
+       --rrcc, --rrccvvbbuuff<SIZE>
+              Set the netlink socket receive buffer size, defaults to 1MB.
+
+       --iieecc   print human readable rates in IEC units (e.g. 1Ki = 1024).
+
+       --bbrr, --bbrriieeff
+              Print only basic information in a tabular format for better readability. This option is currently only supported by
+              iipp aaddddrr sshhooww , iipp lliinnkk sshhooww & iipp nneeiigghh sshhooww commands.
+
+       --jj, --jjssoonn
+              Output results in JavaScript Object Notation (JSON).
+
+       --pp, --pprreettttyy
+              The default JSON format is compact and more efficient to parse but hard for most users to read.  This flag adds in‐
+              dentation for readability.
+
+       --eecchhoo  Request the kernel to send the applied configuration back.
+
+IIPP -- CCOOMMMMAANNDD SSYYNNTTAAXX
+   _O_B_J_E_C_T
+       aaddddrreessss
+              - protocol (IP or IPv6) address on a device.
+
+       aaddddrrllaabbeell
+              - label configuration for protocol address selection.
+
+       iiooaamm   - manage IOAM namespaces and IOAM schemas.
+
+       ll22ttpp   - tunnel ethernet over IP (L2TPv3).
+
+       lliinnkk   - network device.
+
+       mmaaddddrreessss
+              - multicast address.
+
+       mmoonniittoorr
+              - watch for netlink messages.
+
+       mmppttccpp  - manage MPTCP path manager.
+
+       mmrroouuttee - multicast routing cache entry.
+
+       mmrruullee  - rule in multicast routing policy database.
+
+       nneeiigghhbboouurr
+              - manage ARP or NDISC cache entries.
+
+       nneettnnss  - manage network namespaces.
+
+       nnttaabbllee - manage the neighbor cache's operation.
+
+       rroouuttee  - routing table entry.
+
+       rruullee   - rule in routing policy database.
+
+       ssttaattss  - manage and show interface statistics.
+
+       ttccpp__mmeettrriiccss//ttccppmmeettrriiccss
+              - manage TCP Metrics
+
+       ttookkeenn  - manage tokenized interface identifiers.
+
+       ttuunnnneell - tunnel over IP.
+
+       ttuunnttaapp - manage TUN/TAP devices.
+
+       vvrrff    - manage virtual routing and forwarding devices.
+
+       xxffrrmm   - manage IPSec policies.
+
+       The names of all objects may be written in full or abbreviated form, for example aaddddrreessss can be abbreviated as aaddddrr or
+       just aa..
+
+   _C_O_M_M_A_N_D
+       Specifies the action to perform on the object.  The set of possible actions depends on the object type.  As a rule, it is
+       possible to aadddd, ddeelleettee and sshhooww (or lliisstt ) objects, but some objects do not allow all of these operations or have some
+       additional commands. The hheellpp command is available for all objects. It prints out a list of available commands and argu‐
+       ment syntax conventions.
+
+       If no command is given, some default command is assumed.  Usually it is lliisstt or, if the objects of this class cannot be
+       listed, hheellpp.
+
+EENNVVIIRROONNMMEENNTT
+       CCOOLLOORRFFGGBBGG
+              If set, it's value is used for detection whether background is dark or light and use contrast colors for it.
+
+              COLORFGBG environment variable usually contains either two or three values separated by semicolons; we want the
+              last value in either case.  If this value is 0-6 or 8, chose colors suitable for dark background:
+
+              COLORFGBG=";0" ip -c a
+
+EEXXIITT SSTTAATTUUSS
+       Exit status is 0 if command was successful, and 1 if there is a syntax error.  If an error was reported by the kernel exit
+       status is 2.
+
+EEXXAAMMPPLLEESS
+       ip addr
+           Shows addresses assigned to all network interfaces.
+
+       ip neigh
+           Shows the current neighbour table in kernel.
+
+       ip link set x up
+           Bring up interface x.
+
+       ip link set x down
+           Bring down interface x.
+
+       ip route
+           Show table routes.
+
+HHIISSTTOORRYY
+       iipp was written by Alexey N. Kuznetsov and added in Linux 2.2.
+
+SSEEEE AALLSSOO
+       iipp--aaddddrreessss(8), iipp--aaddddrrllaabbeell(8), iipp--iiooaamm(8), iipp--ll22ttpp(8), iipp--lliinnkk(8), iipp--mmaaddddrreessss(8), iipp--mmoonniittoorr(8), iipp--mmppttccpp(8), iipp--
+       mmrroouuttee(8), iipp--nneeiigghhbboouurr(8), iipp--nneettnnss(8), iipp--nnttaabbllee(8), iipp--rroouuttee(8), iipp--rruullee(8), iipp--ssttaattss(8) iipp--ttccpp__mmeettrriiccss(8), iipp--ttoo‐‐
+       kkeenn(8), iipp--ttuunnnneell(8), iipp--vvrrff(8), iipp--xxffrrmm(8)
+       IP Command reference iipp--ccrreeff..ppss
+
+RREEPPOORRTTIINNGG BBUUGGSS
+       Report any bugs to the Network Developers mailing list <<nneettddeevv@@vvggeerr..kkeerrnneell..oorrgg>> where the development and maintenance is
+       primarily done.  You do not have to be subscribed to the list to send a message there.
+
+AAUUTTHHOORR
+       Original Manpage by Michail Litvak <mci@owl.openwall.com>
+
+iproute2                                                   20 Dec 2011                                                      IP(8)
