@@ -1,5 +1,5 @@
-const gridWidth = 4; //32
-const gridHeight = 3; //16
+const gridWidth = 32; //32
+const gridHeight = 16; //16
 function canvasClick() {
 	const xPos = event.clientX;
 	const yPos = event.clientY;
@@ -12,7 +12,6 @@ function canvasClick() {
 	let params = new URLSearchParams();
 	params.append('col', column);
 	params.append('row', row);
-	console.log(params);
 	fetch("http://localhost:8080/games/conway/post",
 		{
 			method: "POST",
@@ -21,7 +20,7 @@ function canvasClick() {
 			{
 				"Content-Type": "application/x-www-form-urlencoded"
 			}
-		}).then((response) => console.log(response));
+		});
 }
 
 function sizeCanvas(){
@@ -65,11 +64,13 @@ function drawBoxes(input){
 	const xStep = width/gridWidth; 
 	const yStep = height/gridHeight;
 	ctx.fillStyle = "white";
+	var count = 0;
 	for(let row = 0; row < gridHeight; row++){
 		for(let col = 0; col < gridWidth; col++){
-			if(input[row][col]==1){
+			if(input[count]==1){
 				ctx.fillRect(xStep*col,yStep*row,xStep,yStep);
 			}
+			count += 1;
 		}
 	}
 }
@@ -77,7 +78,24 @@ function drawBoxes(input){
 function updateFullCanvas(){
 	sizeCanvas();
 	drawGrid();
-	drawBoxes([[1,0,0,1],[0,0,0,0],[1,1,1,1]]);
+	fetchBoard();
+}
+function simpleUpdate(){
+	ctx.clearRect(0,0,c.width, c.height);
+	drawGrid();
+	fetchBoard();
+}
+
+function fetchBoard(){
+	fetch("http://localhost:8080/games/conway/get",
+		{
+			method: "GET",
+		}).then((response) => response.text())
+		.then(data =>{
+			drawBoxes(data);
+		})
+	.catch(error => console.error("Error:", error));
+	
 }
 
 
@@ -85,5 +103,6 @@ function updateFullCanvas(){
 var c = document.getElementById("mainCanvas");
 var ctx = c.getContext("2d");
 updateFullCanvas();
+setInterval(simpleUpdate, 500);
 c.onclick = canvasClick;
 window.onresize = updateFullCanvas;

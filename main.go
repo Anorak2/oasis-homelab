@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"github.com/Anorak/oasis-homelab/go-files/conway"
+	"time"
 )
 
 
@@ -39,8 +40,21 @@ func gameHandler(w http.ResponseWriter, req *http.Request) {
 	serveFile(w, req, filepath)
 }
 
+func updateConway(){
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			conway.UpdateBoard()
+		}
+	}
+}
+
 
 func main() {
+	go updateConway()
 	http.HandleFunc("/games/conway/post", conway.HandlePost)
 	http.HandleFunc("/games/conway/get", conway.HandleGet)
 	http.HandleFunc("/games/", gameHandler)

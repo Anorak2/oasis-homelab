@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
-var mboard [3][4]bool
+var mboard [16][32]bool
+var board_as_string string
 
-func printBoard(board [3][4]bool){
+func printBoard(board [16][32]bool){
 	for x := range(board){
 		for y := range(board[0]){
 			if board[x][y]{
@@ -21,6 +23,7 @@ func printBoard(board [3][4]bool){
 		}
 		fmt.Println("")
 	}
+	fmt.Println("Str:", board_as_string)
 	fmt.Println()
 }
 
@@ -40,34 +43,52 @@ func HandlePost(rw http.ResponseWriter, req *http.Request){
 		fmt.Println("Failed to parse a post request", err)
 		return
 	}
+	// Convert the data to integers
 	col, err := strconv.ParseInt(decodedParams.Get("col"),10,0)
 	if err != nil {
-		fmt.Println("Failed to convert a string", err)
+		fmt.Println("Failed to convert a post req to int", err)
 		return
 	}
 	row, err := strconv.ParseInt(decodedParams.Get("row"),10,0)
 	if err != nil {
-		fmt.Println("Failed to convert a string", err)
+		fmt.Println("Failed to convert a post req to int", err)
 		return
 	}
 	if(row >= 0 && col >= 0 && int(row) < len(mboard) && int(col) < len(mboard[0])){
 		mboard[row][col] = !mboard[row][col]
-		printBoard(mboard)
-		updateBoard()
-		printBoard(mboard)
+		//printBoard(mboard)
+		//updateBoard()
+		//printBoard(mboard)
 	}
 }
 
 func HandleGet(rw http.ResponseWriter, req *http.Request){
-
+	rw.Header().Set("Content-Type", "text/plain")
+	rw.WriteHeader(http.StatusOK)
+	arrToString()
+	rw.Write([]byte(board_as_string))
 }
 
-func updateBoard(){
+func arrToString(){
+	var builder strings.Builder
+
+	for x := 0; x < len(mboard); x++ {
+		for y := 0; y < len(mboard[x]); y++ {
+			if mboard[x][y] {
+				builder.WriteString("1")
+			} else {
+				builder.WriteString("0")
+			}
+		}
+	}
+	board_as_string = builder.String() 
+}
+
+func UpdateBoard(){
 	var tempBoard [len(mboard)][len(mboard[1])]bool 
 	for x := range(mboard){
 		for y := range(mboard){
 			amtNeighbors, err := amtNeighbors(x, y)
-			//fmt.Print(amtNeighbors)
 			if err != nil{
 				return
 			} else if mboard[x][y] == true && amtNeighbors < 2{
@@ -82,6 +103,8 @@ func updateBoard(){
 		}
 	}
 	mboard = tempBoard
+	arrToString()
+	//printBoard(mboard)
 }
 
 func amtNeighbors(row int, col int) (int, error){
