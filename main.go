@@ -1,51 +1,51 @@
 package main
 
 import (
-	"html/template"
-	"log"
+	"fmt"
 	"net/http"
 	"os"
 	"path"
+	"github.com/Anorak/oasis-homelab/go-files/conway"
 )
-type Page struct {
-    Title string
-    Body  []byte
-}
-func loadPage(title string) (*Page, error) {
-	filename := title + ".html"
-	body, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	return &Page{Title: title, Body: body}, nil
-}
 
-func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
-    t, _ := template.ParseFiles(tmpl + ".html")
-    t.Execute(w, p)
-}
 
-func gameHandler(w http.ResponseWriter, r *http.Request) {
-	title := r.URL.Path[len("/games/"):]
-
-	// construct filepath
-	filepath := "assets/games/" + title + ".html"
-	// Make sure we sanitize the string to prevent some bs like ../../passwords
-	filepath = path.Clean(filepath)
+func serveFile(w http.ResponseWriter, r *http.Request, FilePath string) {
+	filepath := path.Clean(FilePath)
+	extension := path.Ext(filepath) 
+	switch extension {
+		case ".js":
+			w.Header().Set("Content-Type", "application/javascript")
+			fmt.Println("hit")
+		case ".css":
+			w.Header().Set("Content-Type", "text/css")
+		default:
+			w.Header().Set("Content-Type", "text/html")
+			filepath += ".html"
+		}
 
 	// Check if the file exists
     if _, err := os.Stat(filepath); os.IsNotExist(err) {
         http.NotFound(w, r)
         return
     }
-	// Tell the webpage to expect html
-	w.Header().Set("Content-Type", "text/html")
 	// actually serve the file
 	http.ServeFile(w, r, filepath)
 }
 
+func gameHandler(w http.ResponseWriter, req *http.Request) {
+	title := req.URL.Path[len("/games/"):]
+	// construct filepath
+	filepath := "assets/games/" + title
+	serveFile(w, req, filepath)
+}
+
 
 func main() {
+	http.HandleFunc("/games/conway/post", conway.HandlePost)
+	http.HandleFunc("/games/conway/get", conway.HandleGet)
 	http.HandleFunc("/games/", gameHandler)
-    log.Fatal(http.ListenAndServe(":8080", nil))
+	err := http.ListenAndServe(":8080", nil)
+	if(err != nil){
+		fmt.Println("Error starting server:",err)
+	}
 }
