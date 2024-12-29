@@ -16,7 +16,6 @@ func serveFile(w http.ResponseWriter, r *http.Request, FilePath string) {
 	switch extension {
 		case ".js":
 			w.Header().Set("Content-Type", "application/javascript")
-			fmt.Println("hit")
 		case ".css":
 			w.Header().Set("Content-Type", "text/css")
 		default:

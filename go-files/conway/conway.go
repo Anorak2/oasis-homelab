@@ -8,14 +8,22 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 )
-var mboard [16][32]bool
-var board_as_string string
+type Board struct{
+	mu sync.Mutex
+	mboard [16][32]bool
+	board_as_string string
+}
+var board Board = Board{
+	mboard: [16][32]bool{},
+	board_as_string: "",
+}
 
-func printBoard(board [16][32]bool){
-	for x := range(board){
-		for y := range(board[0]){
-			if board[x][y]{
+func printBoard(tempBoard *Board){
+	for x := range(tempBoard.mboard){
+		for y := range(tempBoard.mboard[0]){
+			if tempBoard.mboard[x][y]{
 				fmt.Print(1)
 			} else {
 				fmt.Print(0)
@@ -23,7 +31,7 @@ func printBoard(board [16][32]bool){
 		}
 		fmt.Println("")
 	}
-	fmt.Println("Str:", board_as_string)
+	fmt.Println("Str:", tempBoard.board_as_string)
 	fmt.Println()
 }
 
@@ -54,62 +62,70 @@ func HandlePost(rw http.ResponseWriter, req *http.Request){
 		fmt.Println("Failed to convert a post req to int", err)
 		return
 	}
-	if(row >= 0 && col >= 0 && int(row) < len(mboard) && int(col) < len(mboard[0])){
-		mboard[row][col] = !mboard[row][col]
-		//printBoard(mboard)
-		//updateBoard()
-		//printBoard(mboard)
+
+	board.mu.Lock()
+	if(row >= 0 && col >= 0 && int(row) < len(board.mboard) && int(col) < len(board.mboard[0])){
+		board.mboard[row][col] = !board.mboard[row][col]
 	}
+	board.mu.Unlock()
 }
 
 func HandleGet(rw http.ResponseWriter, req *http.Request){
 	rw.Header().Set("Content-Type", "text/plain")
 	rw.WriteHeader(http.StatusOK)
 	arrToString()
-	rw.Write([]byte(board_as_string))
+	board.mu.Lock()
+	rw.Write([]byte(board.board_as_string))
+	board.mu.Unlock()
 }
 
 func arrToString(){
 	var builder strings.Builder
 
-	for x := 0; x < len(mboard); x++ {
-		for y := 0; y < len(mboard[x]); y++ {
-			if mboard[x][y] {
+	board.mu.Lock()
+	for x := 0; x < len(board.mboard); x++ {
+		for y := 0; y < len(board.mboard[x]); y++ {
+			if board.mboard[x][y] {
 				builder.WriteString("1")
 			} else {
 				builder.WriteString("0")
 			}
 		}
 	}
-	board_as_string = builder.String() 
+	board.board_as_string = builder.String() 
+	board.mu.Unlock()
 }
 
 func UpdateBoard(){
-	var tempBoard [len(mboard)][len(mboard[1])]bool 
-	for x := range(mboard){
-		for y := range(mboard){
+	board.mu.Lock()
+	var tempBoard [len(board.mboard)][len(board.mboard[1])]bool 
+	for x := range(board.mboard){
+		for y := range(board.mboard[0]){
 			amtNeighbors, err := amtNeighbors(x, y)
 			if err != nil{
+				fmt.Println("Neighbor Check failed")
 				return
-			} else if mboard[x][y] == true && amtNeighbors < 2{
+			} else if board.mboard[x][y] == true && amtNeighbors < 2{
 				tempBoard[x][y] = false
-			} else if mboard[x][y] == true && amtNeighbors > 3 {
+			} else if board.mboard[x][y] == true && amtNeighbors > 3 {
 				tempBoard[x][y] = false
-			} else if mboard[x][y] == true{
+			} else if board.mboard[x][y] == true{
 				tempBoard[x][y] = true
 			} else if amtNeighbors == 3 {
 				tempBoard[x][y] = true
 			}
 		}
 	}
-	mboard = tempBoard
+
+	board.mboard = tempBoard
+	board.mu.Unlock()
 	arrToString()
-	//printBoard(mboard)
+	//printBoard(board.mboard)
 }
 
 func amtNeighbors(row int, col int) (int, error){
 	
-	if(row < 0 || col < 0 || row >= len(mboard) || col >= len(mboard[0])){
+	if(row < 0 || col < 0 || row >= len(board.mboard) || col >= len(board.mboard[0])){
 		fmt.Println("Invalid Input")
 		return 0, errors.New("bad bounds") 
 	}
@@ -119,8 +135,8 @@ func amtNeighbors(row int, col int) (int, error){
 			if(u == 0 && v == 0){
 				continue
 			}
-			if(row+u >= 0 && col+v >= 0 && row+u < len(mboard) && col+v < len(mboard[0])){
-				if mboard[row+u][col+v]{
+			if(row+u >= 0 && col+v >= 0 && row+u < len(board.mboard) && col+v < len(board.mboard[0])){
+				if board.mboard[row+u][col+v]{
 					neigborAmt += 1
 				}
 			}

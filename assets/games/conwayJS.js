@@ -95,7 +95,6 @@ function fetchBoard(){
 			drawBoxes(data);
 		})
 	.catch(error => console.error("Error:", error));
-	
 }
 
 
@@ -103,6 +102,6 @@ function fetchBoard(){
 var c = document.getElementById("mainCanvas");
 var ctx = c.getContext("2d");
 updateFullCanvas();
-setInterval(simpleUpdate, 500);
+setInterval(simpleUpdate, 1000);
 c.onclick = canvasClick;
 window.onresize = updateFullCanvas;
