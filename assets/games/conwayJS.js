@@ -1,5 +1,8 @@
 const gridWidth = 32; //32
 const gridHeight = 16; //16
+let ws;
+var board = ""
+
 function canvasClick() {
 	const xPos = event.clientX;
 	const yPos = event.clientY;
@@ -7,20 +10,13 @@ function canvasClick() {
 	const height = window.innerHeight*.75;
 	const leftPad = .125 * window.innerWidth;
 	const topPad = 50;
-	const column = Math.floor((xPos-leftPad)/(width/gridWidth));
-	const row = Math.floor((yPos-topPad)/(height/gridHeight));
-	let params = new URLSearchParams();
-	params.append('col', column);
-	params.append('row', row);
-	fetch("http://localhost:8080/games/conway/post",
-		{
-			method: "POST",
-			body: params.toString(), 
-			headers: 
-			{
-				"Content-Type": "application/x-www-form-urlencoded"
-			}
-		});
+	const columndata = Math.floor((xPos-leftPad)/(width/gridWidth));
+	const rowdata = Math.floor((yPos-topPad)/(height/gridHeight));
+	const data = {row: rowdata, column: columndata}
+
+    waitForSocketConnection(ws, function(){
+		ws.send(JSON.stringify(data));
+    });
 }
 
 function sizeCanvas(){
@@ -58,7 +54,7 @@ function drawGrid(){
 	}
 }
 
-function drawBoxes(input){
+function drawBoxes(){
 	const width = window.innerWidth*.75;
 	const height = window.innerHeight*.75;
 	const xStep = width/gridWidth; 
@@ -67,7 +63,7 @@ function drawBoxes(input){
 	var count = 0;
 	for(let row = 0; row < gridHeight; row++){
 		for(let col = 0; col < gridWidth; col++){
-			if(input[count]==1){
+			if(board[count]==1){
 				ctx.fillRect(xStep*col,yStep*row,xStep,yStep);
 			}
 			count += 1;
@@ -78,30 +74,63 @@ function drawBoxes(input){
 function updateFullCanvas(){
 	sizeCanvas();
 	drawGrid();
-	fetchBoard();
-}
-function simpleUpdate(){
-	ctx.clearRect(0,0,c.width, c.height);
-	drawGrid();
-	fetchBoard();
-}
-
-function fetchBoard(){
-	fetch("http://localhost:8080/games/conway/get",
-		{
-			method: "GET",
-		}).then((response) => response.text())
-		.then(data =>{
-			drawBoxes(data);
-		})
-	.catch(error => console.error("Error:", error));
+	requestBoardUpdate();
 }
 
 
+
+function connect() {
+	ws = new WebSocket("ws://localhost:8080/games/ws/conway");
+
+	ws.onopen = function() {
+		console.log("Connected to WebSocket server");
+	};
+
+	ws.onmessage = function(event) {
+		response = event.data
+		//console.log(response.substring(1));
+		if(response[0] == "b"){
+			ctx.clearRect(0,0,c.width, c.height);
+			drawGrid();
+			board = response.substring(1);
+			drawBoxes()
+		}
+	};
+
+	ws.onclose = function() {
+		console.log("WebSocket connection closed, retrying...");
+		setTimeout(connect, 1000); // Reconnect after 1 second
+	};
+
+	ws.onerror = function(error) {
+		console.error("WebSocket error:", error);
+	};
+}
+
+function requestBoardUpdate(){
+    waitForSocketConnection(ws, function(){
+        console.log("requested board update");
+		ws.send("req-b")
+    });
+}
+
+function waitForSocketConnection(socket, callback){
+    setTimeout(
+        function () {
+            if (socket.readyState === 1) {
+                if (callback != null){
+                    callback();
+                }
+            } else {
+                waitForSocketConnection(socket, callback);
+            }
+
+        }, 15); // time to wait in miliseconds
+}
+connect();
 
 var c = document.getElementById("mainCanvas");
 var ctx = c.getContext("2d");
 updateFullCanvas();
-setInterval(simpleUpdate, 1000);
 c.onclick = canvasClick;
 window.onresize = updateFullCanvas;

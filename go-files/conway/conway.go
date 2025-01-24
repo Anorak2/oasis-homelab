@@ -3,10 +3,6 @@ package conway
 import (
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -31,51 +27,15 @@ func printBoard(tempBoard *Board){
 		}
 		fmt.Println("")
 	}
-	fmt.Println("Str:", tempBoard.board_as_string)
+	//fmt.Println("Str:", tempBoard.board_as_string)
 	fmt.Println()
 }
 
-func HandlePost(rw http.ResponseWriter, req *http.Request){
-	// This functions catches the post request and parses it before passing it along
-
-	// This gets the raw data in the post resquest
-	reqBody, err := io.ReadAll(req.Body) 
-	if err != nil {
-		fmt.Println("Failed to read post request: ", err)
-		return
-	}
-	// Decode the data from the raw ascii
-
-	decodedParams, err := url.ParseQuery(string(reqBody))
-	if err != nil {
-		fmt.Println("Failed to parse a post request", err)
-		return
-	}
-	// Convert the data to integers
-	col, err := strconv.ParseInt(decodedParams.Get("col"),10,0)
-	if err != nil {
-		fmt.Println("Failed to convert a post req to int", err)
-		return
-	}
-	row, err := strconv.ParseInt(decodedParams.Get("row"),10,0)
-	if err != nil {
-		fmt.Println("Failed to convert a post req to int", err)
-		return
-	}
-
+func ChangeSquare(row int, col int){
 	board.mu.Lock()
-	if(row >= 0 && col >= 0 && int(row) < len(board.mboard) && int(col) < len(board.mboard[0])){
+	if(row >= 0 && col >= 0 && row < len(board.mboard) && col < len(board.mboard[0])){
 		board.mboard[row][col] = !board.mboard[row][col]
 	}
-	board.mu.Unlock()
-}
-
-func HandleGet(rw http.ResponseWriter, req *http.Request){
-	rw.Header().Set("Content-Type", "text/plain")
-	rw.WriteHeader(http.StatusOK)
-	arrToString()
-	board.mu.Lock()
-	rw.Write([]byte(board.board_as_string))
 	board.mu.Unlock()
 }
 
@@ -143,4 +103,8 @@ func amtNeighbors(row int, col int) (int, error){
 		}
 	}
 	return neigborAmt, nil
+}
+
+func GetBoard() string{
+	return "b"+ board.board_as_string
 }
