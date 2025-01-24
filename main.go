@@ -2,21 +2,17 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path"
 	"github.com/Anorak/oasis-homelab/go-files/conway"
-	"time"
 	"github.com/gorilla/websocket"
-	"sync"
-	"encoding/json"
 )
 
 
 func serveFile(w http.ResponseWriter, r *http.Request, FilePath string) {
-	filepath := path.Clean(FilePath)
-	extension := path.Ext(filepath) 
+	filepath := path.Clean(FilePath) // clean the file path from things like ..
+	extension := path.Ext(filepath) // see if there is a file extension
 	switch extension {
 		case ".js":
 			w.Header().Set("Content-Type", "application/javascript")
@@ -37,6 +33,7 @@ func serveFile(w http.ResponseWriter, r *http.Request, FilePath string) {
 }
 
 func gameHandler(w http.ResponseWriter, req *http.Request) {
+	// extract only the relevant part for us
 	title := req.URL.Path[len("/games/"):]
 	// construct filepath
 	filepath := "assets/games/" + title
@@ -49,94 +46,34 @@ func handlehome(w http.ResponseWriter, req *http.Request){
 	serveFile(w, req, filepath)
 }
 
-func updateConway(){
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			//apply the rules to the board once
-			conway.UpdateBoard()
-			message := conway.GetBoard()
-			// message each connection
-			con_mu.Lock()
-			for conn := range activeConnections {
-				if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
-					fmt.Println("Error sending periodic message:", err)
-					conn.Close() // Close connection if it fails to send a message
-					delete(activeConnections, conn) // Remove broken connection
-				}
-			}
-			con_mu.Unlock()
-		}
-	}
-}
 
 var(
 	upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
 	}
-	activeConnections = make(map[*websocket.Conn]bool)
-	con_mu sync.Mutex
 )
-
-type jsonData struct {
-	Row int
-	Column int
-}
-
-func wsHandler(w http.ResponseWriter, r *http.Request) {
+// used to send websocket connections to where they need to go
+func wsPiper(w http.ResponseWriter, r *http.Request){
 	// Upgrade the HTTP connection to a WebSocket connection
     conn, err := upgrader.Upgrade(w, r, nil)
     if err != nil {
        fmt.Println("Error upgrading:", err)
        return
     }
-    defer conn.Close()
-
-	con_mu.Lock()
-	activeConnections[conn] = true
-	con_mu.Unlock()
-
-	// Listen for incoming messages from this specific connection
-	for {
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			log.Println("Error reading message:", err)
-			break
-		}
-
-		log.Printf("Received: %s\n", message)
-		// Echo the message back to the client
-		if string(message) == "req-b"{
-			boardState := conway.GetBoard()
-			if err := conn.WriteMessage(websocket.TextMessage, []byte(boardState)); err != nil {
-				log.Println("Error writing message:", err)
-				break
-			}
-		} else {
-			var payload jsonData
-			err := json.Unmarshal([]byte(message), &payload)
-			if err != nil {
-				log.Printf("Error unmarshalling json")
-			} else{
-				conway.ChangeSquare(int(payload.Row), int(payload.Column))
-			}
-		}
-	}
-
-	// Once the connection is closed, remove it from the active connections map
-	con_mu.Lock()
-	delete(activeConnections, conn)
-	con_mu.Unlock()
+    defer conn.Close() // close connection when we're done
+	
+	// pipe the connection to the conway specific ws handler
+	conway.WsHandler(conn)
 }
-
 func main() {
-	go updateConway()
-	http.HandleFunc("/games/ws/conway", wsHandler)
+	// This is the main game loop for conways, runs every 5s	
+	go conway.UpdateConway()
+
+	http.HandleFunc("/games/ws/conway", wsPiper)
 	http.HandleFunc("/games/", gameHandler)
 	http.HandleFunc("/", handlehome)
 	err := http.ListenAndServe(":8080", nil)

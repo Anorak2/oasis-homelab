@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
+	"log"
+	"github.com/gorilla/websocket"
+	"encoding/json"
 )
 type Board struct{
 	mu sync.Mutex
@@ -15,8 +19,11 @@ var board Board = Board{
 	mboard: [16][32]bool{},
 	board_as_string: "",
 }
+var activeConnections = make(map[*websocket.Conn]bool)
+var con_mu sync.Mutex
 
 func printBoard(tempBoard *Board){
+	// method is intended for debugging only
 	for x := range(tempBoard.mboard){
 		for y := range(tempBoard.mboard[0]){
 			if tempBoard.mboard[x][y]{
@@ -31,7 +38,8 @@ func printBoard(tempBoard *Board){
 	fmt.Println()
 }
 
-func ChangeSquare(row int, col int){
+func changeSquare(row int, col int){
+	// bit flips a single square
 	board.mu.Lock()
 	if(row >= 0 && col >= 0 && row < len(board.mboard) && col < len(board.mboard[0])){
 		board.mboard[row][col] = !board.mboard[row][col]
@@ -76,7 +84,6 @@ func UpdateBoard(){
 			}
 		}
 	}
-
 	board.mboard = tempBoard
 	board.mu.Unlock()
 	arrToString()
@@ -84,7 +91,8 @@ func UpdateBoard(){
 }
 
 func amtNeighbors(row int, col int) (int, error){
-	
+	// used for updating the board, it returns the number of active
+	// neighboring cells in a chess kings radius
 	if(row < 0 || col < 0 || row >= len(board.mboard) || col >= len(board.mboard[0])){
 		fmt.Println("Invalid Input")
 		return 0, errors.New("bad bounds") 
@@ -105,6 +113,82 @@ func amtNeighbors(row int, col int) (int, error){
 	return neigborAmt, nil
 }
 
+
+
+
+type jsonData struct {
+	Row int
+	Column int
+}
+
+func WsHandler(conn *websocket.Conn) {
+
+	con_mu.Lock()
+	activeConnections[conn] = true
+	con_mu.Unlock()
+
+	// Listen for incoming messages from this specific connection
+	for {
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			log.Println("Error reading message:", err)
+			break
+		}
+
+		log.Printf("Received: %s\n", message)
+		if string(message) == "req-b"{
+			// req-b, or request board. We respond with the current board state
+			boardState := GetBoard()
+			if err := conn.WriteMessage(websocket.TextMessage, []byte(boardState)); err != nil {
+				log.Println("Error writing message:", err)
+				break
+			}
+		} else {
+			// if not a specific message just assume its json
+			var payload jsonData
+			err := json.Unmarshal([]byte(message), &payload)
+			if err != nil {
+				// basically just ignore this error, this is a low stakes message anyway
+				log.Println("Error unmarshalling json", err)
+			} else{
+				changeSquare(int(payload.Row), int(payload.Column))
+			}
+		}
+	}
+
+	// Once the connection is closed, remove it from the active connections map
+	con_mu.Lock()
+	delete(activeConnections, conn)
+	con_mu.Unlock()
+}
+
+func UpdateConway(){
+	// this is the wrapper function for updateBoard and handles websocket updates etc
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			//apply the rules to the board once
+			UpdateBoard()
+			message := GetBoard()
+			// message each connection
+			con_mu.Lock()
+			for conn := range activeConnections {
+				if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
+					fmt.Println("Error sending conway board update:", err)
+					conn.Close() // Close connection if it fails to send a message
+					delete(activeConnections, conn) // Remove broken connection
+				}
+			}
+			con_mu.Unlock()
+		}
+	}
+}
+
 func GetBoard() string{
+	// not really necessary, this just adds a marker so that our js knows this is 
+	// a board update and not some other message
 	return "b"+ board.board_as_string
 }
