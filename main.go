@@ -8,7 +8,9 @@ import (
 	"github.com/Anorak/oasis-homelab/go-files/conway"
 	"github.com/gorilla/websocket"
 )
-
+func serveFavicon(w http.ResponseWriter, r *http.Request){
+	http.ServeFile(w, r, "assets/images/favicon.ico")
+}
 
 func serveFile(w http.ResponseWriter, r *http.Request, FilePath string) {
 	filepath := path.Clean(FilePath) // clean the file path from things like ..
@@ -73,6 +75,7 @@ func main() {
 	// This is the main game loop for conways, runs every 5s	
 	go conway.UpdateConway()
 
+	http.HandleFunc("/favicon.ico", serveFavicon)
 	http.HandleFunc("/games/ws/conway", wsPiper)
 	http.HandleFunc("/games/", gameHandler)
 	http.HandleFunc("/", handlehome)
