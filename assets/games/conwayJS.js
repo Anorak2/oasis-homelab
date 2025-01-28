@@ -71,16 +71,12 @@ function drawBoxes(){
 	}
 }
 function drawSquareFlip(row, col){
-	console.log(row + " " + col);
-	//console.log(board);
 	var s = (row*gridWidth)+col;
-	//console.log(s);
 	if(board[s] === "1"){
 		board = board.substring(0,s) + "0" + board.substring(s+1);
 	}else {
 		board = board.substring(0,s) + "1" + board.substring(s+1);
 	}
-	console.log(board)
 
 	ctx.clearRect(0,0,c.width, c.height);
 	drawGrid();
