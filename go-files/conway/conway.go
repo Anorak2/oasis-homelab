@@ -15,10 +15,17 @@ type Board struct{
 	mboard [16][32]bool
 	board_as_string string
 }
+
+type jsonData struct {
+	Row int
+	Column int
+}
+
 var board Board = Board{
 	mboard: [16][32]bool{},
 	board_as_string: "",
 }
+
 var activeConnections = make(map[*websocket.Conn]bool)
 var con_mu sync.Mutex
 
@@ -40,11 +47,12 @@ func printBoard(tempBoard *Board){
 
 func changeSquare(row int, col int){
 	// bit flips a single square
-	board.mu.Lock()
 	if(row >= 0 && col >= 0 && row < len(board.mboard) && col < len(board.mboard[0])){
+		board.mu.Lock()
 		board.mboard[row][col] = !board.mboard[row][col]
+		board.mu.Unlock()
+		sendSquare(row,col)
 	}
-	board.mu.Unlock()
 }
 
 func arrToString(){
@@ -113,16 +121,8 @@ func amtNeighbors(row int, col int) (int, error){
 	return neigborAmt, nil
 }
 
-
-
-
-type jsonData struct {
-	Row int
-	Column int
-}
-
 func WsHandler(conn *websocket.Conn) {
-
+	// update our activeConnections so we can broadcast messages to them
 	con_mu.Lock()
 	activeConnections[conn] = true
 	con_mu.Unlock()
@@ -185,6 +185,25 @@ func UpdateConway(){
 			con_mu.Unlock()
 		}
 	}
+}
+
+func sendSquare(row int, col int){
+	jsonMessage := jsonData{row, col}
+	message, err := json.Marshal(jsonMessage) 
+	if(err != nil){
+		log.Println("Error encoding json for square flip")
+		return
+	}
+	// message each connection
+	con_mu.Lock()
+	for conn := range activeConnections {
+		if err := conn.WriteMessage(websocket.TextMessage, []byte("s"+ string(message))); err != nil {
+			fmt.Println("Error sending conway board update:", err)
+			conn.Close() // Close connection if it fails to send a message
+			delete(activeConnections, conn) // Remove broken connection
+		}
+	}
+	con_mu.Unlock()
 }
 
 func GetBoard() string{

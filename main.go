@@ -47,15 +47,14 @@ func handlehome(w http.ResponseWriter, req *http.Request){
 }
 
 
-var(
-	upgrader = websocket.Upgrader{
+var upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
-)
+
 // used to send websocket connections to where they need to go
 func wsPiper(w http.ResponseWriter, r *http.Request){
 	// Upgrade the HTTP connection to a WebSocket connection
@@ -69,6 +68,7 @@ func wsPiper(w http.ResponseWriter, r *http.Request){
 	// pipe the connection to the conway specific ws handler
 	conway.WsHandler(conn)
 }
+
 func main() {
 	// This is the main game loop for conways, runs every 5s	
 	go conway.UpdateConway()

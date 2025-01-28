@@ -70,13 +70,28 @@ function drawBoxes(){
 		}
 	}
 }
+function drawSquareFlip(row, col){
+	console.log(row + " " + col);
+	//console.log(board);
+	var s = (row*gridWidth)+col;
+	//console.log(s);
+	if(board[s] === "1"){
+		board = board.substring(0,s) + "0" + board.substring(s+1);
+	}else {
+		board = board.substring(0,s) + "1" + board.substring(s+1);
+	}
+	console.log(board)
+
+	ctx.clearRect(0,0,c.width, c.height);
+	drawGrid();
+	drawBoxes();
+}
 
 function updateFullCanvas(){
 	sizeCanvas();
 	drawGrid();
 	requestBoardUpdate();
 }
-
 
 
 function connect() {
@@ -87,13 +102,15 @@ function connect() {
 	};
 
 	ws.onmessage = function(event) {
-		response = event.data
-		//console.log(response.substring(1));
+		response = event.data;
 		if(response[0] == "b"){
 			ctx.clearRect(0,0,c.width, c.height);
 			drawGrid();
 			board = response.substring(1);
-			drawBoxes()
+			drawBoxes();
+		} else if(response[0] == "s"){
+			var square = JSON.parse(response.substring(1));
+			drawSquareFlip(square.Row, square.Column);
 		}
 	};
 
@@ -110,7 +127,7 @@ function connect() {
 function requestBoardUpdate(){
     waitForSocketConnection(ws, function(){
         console.log("requested board update");
-		ws.send("req-b")
+		ws.send("req-b");
     });
 }
 
