@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"html/template"
 	"github.com/Anorak/oasis-homelab/go-files/conway"
 	"github.com/gorilla/websocket"
+	"github.com/Anorak/oasis-homelab/config"
 )
 func serveFavicon(w http.ResponseWriter, r *http.Request){
 	http.ServeFile(w, r, "assets/images/favicon.ico")
@@ -74,6 +76,16 @@ func wsPiper(w http.ResponseWriter, r *http.Request){
 func main() {
 	// This is the main game loop for conways, runs every 5s	
 	go conway.UpdateConway()
+	fmt.Println(config.API_URL)
+
+	http.HandleFunc("/config.js", func(w http.ResponseWriter, r *http.Request) {
+		tmpl := template.Must(template.New("config.js").Parse(`
+			window.API_URL = "{{ .APIURL }}";
+			window.WS_URL = "{{ .WSURL }}";
+		`))
+		w.Header().Set("Content-Type", "application/javascript")
+		tmpl.Execute(w, struct{ APIURL string; WSURL string }{APIURL: config.API_URL, WSURL: config.WS_URL})
+	})
 
 	http.HandleFunc("/favicon.ico", serveFavicon)
 	http.HandleFunc("/games/ws/conway", wsPiper)

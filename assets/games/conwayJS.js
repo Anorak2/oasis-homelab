@@ -91,7 +91,8 @@ function updateFullCanvas(){
 
 
 function connect() {
-	ws = new WebSocket("ws://localhost:8080/games/ws/conway");
+	console.log(window.WS_URL);
+	ws = new WebSocket(`${window.WS_URL}/games/ws/conway`);
 
 	ws.onopen = function() {
 		console.log("Connected to WebSocket server");
